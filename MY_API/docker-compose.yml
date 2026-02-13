@@ -1,0 +1,9 @@
+services:
+  api:
+    build: .
+    container_name: server_fast_api 
+    ports:
+      - "5000:5000"
+    #donde va a guardar algo por que si no seria temporal volumes
+    volumes:
+      - ./app:/app/app
