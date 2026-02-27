@@ -1,0 +1,9 @@
+services:
+  api:
+    build: .
+    container_name: server_libros_api 
+    ports:
+      - "5010:5010"
+    #donde va a guardar algo por que si no seria temporal volumes
+    volumes:
+      - ./app:/app/app
