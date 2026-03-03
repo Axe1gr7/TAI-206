@@ -1,8 +1,11 @@
 #importaciones
-from typing import Optional
-from fastapi import FastAPI,status,HTTPException
+from fastapi import FastAPI, status, HTTPException,Depends
 import asyncio
+from typing import Optional
 from pydantic import BaseModel, Field
+from datetime import datetime
+from fastapi.security import HTTPBasic,HTTPAuthorizationCredentials,HTTPBasicCredentials
+import secrets
 
 #tiempo de espera de una peticion es de prueba 
 
@@ -16,6 +19,22 @@ class UsuarioBase(BaseModel):
     id :int =  Field(...,gt=0,description="identificador de usuario",example="1")
     nombre : str = Field(...,min_length=3,max_length=50,description="Nombre del usuario",example="axel")
     edad : int = Field(...,ge=0,gt=121,description="la edad de 0 a 121",example="21")
+
+
+# seguridad con HTTP Basic
+
+security= HTTPBasic()
+def verificar_Petcion(credentials: HTTPBasicCredentials=Depends(security)):
+    usuarioAuth= secrets.compare_digest(credentials.username,"a")
+    contraAuth= secrets.compare_digest(credentials.password,"1310")
+    
+    if not(usuarioAuth and contraAuth):
+        raise HTTPException(
+            status_code= status.HTTP_401_UNAUTHORIZED,
+            detail="credenciales no validas",
+        )
+        
+    return credentials.username
 
 #inicialiacion 
 app= FastAPI(
@@ -119,7 +138,7 @@ async def actualizar_usuario(id: int, usuario_actualizado: dict):
 
 #delete 
 @app.delete("/v1/EliminarUsuario/{id}", tags=['Crud Usuario'])
-async def eliminar_usuario(id: int):
+async def eliminar_usuario(id: int, usuarioAuth:str= Depends(verificar_Petcion)):
     # Buscar el índice del usuario por id
     for i, usr in enumerate(usuarios):
         if usr["id"] == id:
@@ -134,3 +153,4 @@ async def eliminar_usuario(id: int):
         status_code=status.HTTP_404_NOT_FOUND,
         detail="Usuario no encontrado"
     )
+    
