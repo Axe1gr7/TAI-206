@@ -1,0 +1,9 @@
+services:
+  api:
+    build: .
+    container_name: server_fast_api_JWT
+    ports:
+      - "5030:5030"
+    # donde va a guardar algo, porque si no sería temporal (volumes)
+    volumes:
+      - ./app:/app/app
