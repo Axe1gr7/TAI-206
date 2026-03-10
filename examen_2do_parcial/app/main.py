@@ -8,7 +8,7 @@ citas = [
         "id": 1,
         "nomnre": "gabriel",
         "motivo": "gripe",
-        "anio": 1949,
+        "anio": 2030,
         "mes": 10,
         "dia": 30,
         "confirmacion": True
@@ -17,7 +17,7 @@ citas = [
         "id": 2,
         "nomnre": "edith",
         "motivo": "tos",
-        "anio": 1949,
+        "anio": 2030,
         "mes": 10,
         "dia": 28,
         "confirmacion": False
@@ -26,28 +26,21 @@ citas = [
         "id": 3,
         "nomnre": "isacc",
         "motivo": "chorro",
-        "anio": 1949,
+        "anio": 2030,
         "mes": 10,
         "dia": 18,
         "confirmacion": True
     }
 ]
-
-agenda = [
-    {"cita_id":2, "usuario": "gabriel", "confirmacion":True}
-]
-
-
-
 # --- MODELOS PYDANTIC --
 
 class citass(BaseModel):
     id: int = Field(..., gt=0, description="Identificador único de la cita")
     nombre: str = Field(..., min_length=3, max_length=50, description="Nombre del usuario")
-    anio: int = Field(..., gt=1450, ge=datetime.now().year, description="que no sea mayor a el año actual")
+    anio: int = Field(..., ge=2026, le=2030, description="que no sea mayor a el año actual")
     mes: int = Field(..., ge=1, le=12, description="mes valido del 1 al 12")
     dia: int = Field(..., ge=1, le=31, description="mes valido del 1 al 31")
-    confirmacion: bool = Field(..., default= False)
+    confirmacion: bool = Field(default= False)
 
 
 
@@ -70,11 +63,27 @@ async def crear_cita(citas: citass):
         if l["id"] == citas.id:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="La cita ya existe")
     
-    citas.append(citas.model_dump())
-    return {"mensaje": "Libro registrado correctamente", "libro": citas}
+    citas.append(citass.model_dump())
+    return {"mensaje": "cita registrado correctamente", "cita": citas}
+
+@app.post("/v1/Agregarcitas/{id}", tags=['citas'])
+async def Agregarcitas(citas:citass):
+    for citas in citass:
+        if citas["id"] == citas.id("id"):
+            raise HTTPException(
+                status_code=400,
+                detail="ID existente"
+            )
+    citas.append(citas)
+    return{
+        "mensaje":"usuario agregado correctamente",
+        "datos":citas,
+        "status":200
+    } 
 
 
-@app.get("/v1/listar/", tags=['Libros'])
+
+@app.get("/v1/listar/", tags=['citas'])
 async def listar_listar_citas():
     citas_confirmadas = [l for l in citas if l["confirmacion"] == True]
     return {
@@ -85,61 +94,35 @@ async def listar_listar_citas():
 
 
 
-@app.get("/v1/libros/disponibles", tags=['Libros'])
-async def listar_libros_disponibles():
-    libros_disponibles = [l for l in libros if l["estado"] == 1]
-    return {
-        "total_disponibles": len(libros_disponibles),
-        "data": libros_disponibles
-    }
-
-@app.get("/v1/libros/buscar", tags=['Libros'])
-async def buscar_libro(nombre: str):
-    resultados = [l for l in libros if nombre.lower() in l["titulo"].lower()]
+@app.get("/v1/citas/buscar/id", tags=['citas'])
+async def buscar_citas_id(id: int):
+    resultados = [l for l in citas if id in l["id"]]
     if not resultados:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No se encontraron libros con ese nombre")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No se encontraron citas con ese id")
     return resultados
 
+@app.get("/v1/citas/buscar/id_S", tags=['citas'])
+async def consultas_citas(id:int = None):
+    if id is not None:
+        for citass in citas:
+            if citass["id"] == id: 
+                return {"usuario encontrado": id, "Datos": consultas_citas}
+        return {"mensaje": "Usuario no encontrado"}  
+    else:
+        return {"mensaje": "No se proporciono Id"} 
 
-# -- prestamos --
-@app.post("/v1/prestamos/{libro_id}", tags=['Préstamos'])
-async def registrar_prestamo(libro_id: int, usuario: UsuarioBase):
-    for libro in libros:
-        if libro["id"] == libro_id:
-            if libro["estado"] == 0:
-                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Conflict: El libro ya está prestado")
-            
-            libro["estado"] = 0
-            nuevo_prestamo = {
-                "libro_id": libro_id,
-                "usuario": usuario.nombre,
-                "correo": usuario.correo
-            }
-            prestamos.append(nuevo_prestamo)
-            return {"mensaje": "Préstamo registrado exitosamente", "detalle": nuevo_prestamo}
-            
-    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Libro no encontrado")
 
-@app.put("/v1/libros/devolver/{libro_id}", tags=['Préstamos'], status_code=status.HTTP_200_OK)
-async def devolver_libro(libro_id: int):
-    for libro in libros:
-        if libro["id"] == libro_id:
-            if libro["estado"] == 1:
-                return {"mensaje": "El libro ya se encontraba disponible (estado 1)"}
-            
-            libro["estado"] = 1
-            return {"mensaje": "Libro devuelto correctamente", "status": 200, "libro": libro}
-            
-    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Libro no encontrado")
 
-@app.delete("/v1/prestamos/eliminar/{libro_id}", tags=['Préstamos'])
-async def eliminar_prestamo(libro_id: int):
-    for i, p in enumerate(prestamos):
-        if p["libro_id"] == libro_id:
-            prestamo_eliminado = prestamos.pop(i)
-            return {"mensaje": "Registro de préstamo eliminado", "datos": prestamo_eliminado}
+@app.put("/v1/citas/confirmar/{cita_id}", tags=['citas'], status_code=status.HTTP_200_OK)
+async def confirmar_cita(cita_id: int):
+    for citass in citas:
+        if citas["id"] == cita_id:
+            if citas["confirmacion"] == True:
+                return {"mensaje": "La cita ya se encontraba confirmada)"}
             
-    raise HTTPException(
-        status_code=status.HTTP_409_CONFLICT, 
-        detail="Conflict: El registro de préstamo ya no existe"
-    )
+            citas["confirmacion"] = False
+            return {"mensaje": "cita confirmada correctamente", "status": 200, "cita": citass}
+            
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="cita no encontrada")
+
+
