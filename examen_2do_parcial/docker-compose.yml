@@ -1,0 +1,9 @@
+services:
+  api:
+    build: .
+    container_name: examen_2do_parcial
+    ports:
+      - "5030:5030"
+    #donde va a guardar algo por que si no seria temporal volumes
+    volumes:
+      - ./app:/app/app
