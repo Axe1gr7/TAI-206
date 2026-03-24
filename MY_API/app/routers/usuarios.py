@@ -1,7 +1,12 @@
-from fastapi import FastAPI, status, HTTPException,Depends, APIRouter
+from fastapi import FastAPI, status, HTTPException, Depends, APIRouter
 from app.models.usuario import UsuarioBase
 from app.data.database import usuarios
 from app.security.auth import verificar_Petcion
+
+from sqlalchemy.orm import Session 
+from app.data.usuario import Usuario
+from app.data.db import get_db
+
 router = APIRouter(
     prefix= "/v1/usuarios", 
     tags=["Crud Usuario"]
@@ -9,27 +14,31 @@ router = APIRouter(
 
 #verbos http tarea put, delete
 @router.get("/")
-async def ConsultaUsuarios():
-    return{
-        "status":"200",
-        "total":len(usuarios),
-        "data":usuarios
+async def leer_Usuarios(db: Session = Depends(get_db)): 
+
+    Consultausuarios = db.query(Usuario).all()
+    return {
+        "status": "200",
+        "total": len(Consultausuarios),
+        "data": Consultausuarios
     }
 
-@router.post("/{id}", status_code=status.HTTP_200_OK)
-async def AgregarUsuarios(usuario:UsuarioBase):
-    for usr in usuarios:
-        if usr["id"] == usuario.id("id"):
-            raise HTTPException(
-                status_code=400,
-                detail="ID existente"
-            )
-    usuarios.append(usuario)
-    return{
-        "mensaje":"usuario agregado correctamente",
-        "datos":usuario,
-        "status":200
-    } 
+@router.post("/", status_code=status.HTTP_201_CREATED) 
+async def AgregarUsuarios(usuariop: UsuarioBase, db: Session = Depends(get_db)):
+    nuevo_usuario = Usuario(nombre=usuariop.nombre, edad=usuariop.edad)
+    
+    db.add(nuevo_usuario)
+    db.commit()
+    db.refresh(nuevo_usuario)
+    
+    return {
+        "mensaje": "usuario agregado correctamente",
+        "datos": nuevo_usuario, 
+        "status": 201
+    }
+    
+    
+    
 
 
 # put
